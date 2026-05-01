@@ -28,6 +28,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
+    path: 'leave-request',       // ← DODAJ OVO
+    loadComponent: () => import('./features/leaves/leave-request.component')
+      .then(m => m.LeaveRequestComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: '/dashboard',
   },

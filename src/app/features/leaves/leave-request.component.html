@@ -1,0 +1,236 @@
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-row">
+        <div class="brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+          </svg>
+        </div>
+        <span class="brand-name">StaffAway</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">Glavni meni</div>
+      <div class="nav-item" routerLink="/dashboard">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+        </svg>
+        Dashboard
+      </div>
+      <div class="nav-item active">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path
+            d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"
+          />
+        </svg>
+        Novi zahtev
+      </div>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="user-chip">
+        <div class="user-av">A</div>
+        <div class="user-info">
+          <div class="uname">Korisnik</div>
+          <div class="uemail">korisnik&#64;email.com</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span routerLink="/dashboard" style="cursor: pointer">Dashboard</span>
+        <span class="sep">›</span>
+        <span class="current">Novi zahtev za odsustvo</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-ghost" routerLink="/dashboard">Odustani</button>
+        <button class="btn-primary" (click)="onSubmit()" [disabled]="isSubmitting">
+          {{ isSubmitting ? 'Slanje...' : 'Pošalji zahtev' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <!-- LEVA STRANA - FORMA -->
+      <div class="form-card">
+        <h2>Zahtev za odsustvo</h2>
+        <p class="desc">Popunite formu da biste podneli zahtev za odsustvo</p>
+
+        <div class="error" *ngIf="errorMessage">{{ errorMessage }}</div>
+        <div class="success" *ngIf="successMessage">{{ successMessage }}</div>
+
+        <form [formGroup]="leaveForm">
+          <!-- VRSTA ODMORA -->
+          <div class="field">
+            <label>Vrsta odsustva</label>
+            <div class="leave-types">
+              <div
+                *ngFor="let type of leaveTypes"
+                class="leave-type"
+                [class.selected]="selectedType === type.value"
+                (click)="selectType(type.value)"
+              >
+                <div class="lt-icon" [style.background]="type.color + '20'">
+                  {{ type.icon }}
+                </div>
+                <div class="lt-label">{{ type.label }}</div>
+                <div class="lt-days" *ngIf="getBalanceForType(type.value) as bal">
+                  {{ bal.remaining }} / {{ bal.total }} dana
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider-line"></div>
+
+          <!-- DATUMI -->
+          <div class="field">
+            <label>Period odsustva</label>
+            <div class="date-range">
+              <div class="field" style="margin-bottom: 0">
+                <label>Od</label>
+                <input type="date" formControlName="date_from" />
+              </div>
+              <div class="arrow">→</div>
+              <div class="field" style="margin-bottom: 0">
+                <label>Do</label>
+                <input type="date" formControlName="date_to" />
+              </div>
+            </div>
+            <small
+              *ngIf="workingDays > 0"
+              style="color: #0d4a35; font-size: 12px; margin-top: 6px; display: block"
+            >
+              Ukupno: <strong>{{ workingDays }} radnih dana</strong> (vikendi isključeni)
+            </small>
+          </div>
+
+          <div class="divider-line"></div>
+
+          <!-- NAPOMENA -->
+          <div class="field">
+            <label>Napomena menadžeru (opciono)</label>
+            <textarea
+              formControlName="note"
+              placeholder="Npr. Imam zakazano putovanje..."
+            ></textarea>
+          </div>
+        </form>
+      </div>
+
+      <!-- DESNA STRANA -->
+      <div class="right-col">
+        <!-- MINI KALENDAR -->
+        <div class="cal-card">
+          <h3>Pregled kalendara</h3>
+          <div class="cal-header">
+            <span>{{ monthNames[currentDate.getMonth()] }} {{ currentDate.getFullYear() }}</span>
+            <div class="cal-nav">
+              <button (click)="prevMonth()">‹</button>
+              <button (click)="nextMonth()">›</button>
+            </div>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dname">P</div>
+            <div class="cal-dname">U</div>
+            <div class="cal-dname">S</div>
+            <div class="cal-dname">Č</div>
+            <div class="cal-dname">P</div>
+            <div class="cal-dname">S</div>
+            <div class="cal-dname">N</div>
+
+            <ng-container *ngFor="let day of calendarDays">
+              <div
+                class="cal-day"
+                [class.other]="day.other"
+                [class.today]="isToday(day.date) && !isInRange(day.date)"
+                [class.range-start]="isRangeStart(day.date)"
+                [class.range-end]="isRangeEnd(day.date)"
+                [class.in-range]="
+                  isInRange(day.date) && !isRangeStart(day.date) && !isRangeEnd(day.date)
+                "
+                [class.weekend]="isWeekend(day.date)"
+              >
+                {{ day.date.getDate() }}
+              </div>
+            </ng-container>
+          </div>
+
+          <!-- LEGENDA -->
+          <div style="display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap">
+            <div
+              style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6b7280"
+            >
+              <div style="width: 10px; height: 10px; border-radius: 2px; background: #0d4a35"></div>
+              Odabrani period
+            </div>
+            <div
+              style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6b7280"
+            >
+              <div style="width: 10px; height: 10px; border-radius: 2px; background: #edf5f1"></div>
+              Radni dani
+            </div>
+            <div
+              style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #6b7280"
+            >
+              <div style="width: 10px; height: 10px; border-radius: 2px; background: #d3d1c7"></div>
+              Vikend
+            </div>
+          </div>
+        </div>
+
+        <!-- SUMMARY -->
+        <div class="summary-card">
+          <h3>Pregled zahteva</h3>
+          <div class="sum-row">
+            <span class="key">Vrsta</span>
+            <span class="val">{{ getBalanceLabel(selectedType) }}</span>
+          </div>
+          <div class="sum-row">
+            <span class="key">Od</span>
+            <span class="val">{{ formatDate(leaveForm.get('date_from')?.value) }}</span>
+          </div>
+          <div class="sum-row">
+            <span class="key">Do</span>
+            <span class="val">{{ formatDate(leaveForm.get('date_to')?.value) }}</span>
+          </div>
+          <div class="sum-row">
+            <span class="key">Vikendi</span>
+            <span class="val" style="color: #6b7280">Isključeni</span>
+          </div>
+          <div class="sum-total">
+            <span class="tkey">Radnih dana</span>
+            <span class="tval">{{ workingDays || 0 }} dana</span>
+          </div>
+        </div>
+
+        <!-- BALANS -->
+        <div class="balance-card">
+          <h3>Vaš balans odmora</h3>
+          <div class="bal-bar" *ngFor="let bal of balance">
+            <div class="bal-meta">
+              <span class="bname">{{ getBalanceLabel(bal.type) }}</span>
+              <span class="bcount">{{ bal.remaining }} / {{ bal.total }}</span>
+            </div>
+            <div class="bar-bg">
+              <div
+                class="bar-fill"
+                [style.width]="getBalancePercent(bal) + '%'"
+                [style.background]="getBalanceColor(bal.type)"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
